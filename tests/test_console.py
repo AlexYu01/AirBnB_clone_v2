@@ -130,6 +130,27 @@ class TestConsole(unittest.TestCase):
             self.assertNotIn('\'num\': 0', f.getvalue())
 
 
+    def test_create_place_0(self):
+        """Test create command on Place with valid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create Place name=\"Holberton\" max_guest=100")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all Place")
+            self.assertIn('\'name\': \'Holberton\'', f.getvalue())
+            self.assertIn('\'max_guest\': 100', f.getvalue())
+
+    def test_create_place_1(self):
+        """Test create command on Place with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create Place max_guest=\"String\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all Place")
+            self.assertNotIn('\'max_guest\': \'String\'', f.getvalue())
+
+
+
+
+
     def test_show(self):
         """Test show command inpout"""
         with patch('sys.stdout', new=StringIO()) as f:
