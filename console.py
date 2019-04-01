@@ -43,6 +43,8 @@ class HBNBCommand(cmd.Cmd):
                 raise SyntaxError()
             my_list = line.split(" ")
             obj = eval("{}()".format(my_list[0]))
+            if len(my_list) > 1:
+                self.fill_out(obj, my_list)
             obj.save()
             print("{}".format(obj.id))
         except SyntaxError:
@@ -247,6 +249,34 @@ class HBNBCommand(cmd.Cmd):
                     self.do_update(args)
         else:
             cmd.Cmd.default(self, line)
+
+    def fill_out(self, obj, args):
+        """Sets the attributes for the newly created objects with the
+        parameters found in args if the class of the object has them.
+        Args:
+            obj: The newly created object.
+            args: Input list of args.
+        """
+        clzz = eval(args[0])
+        for arg in args[1:]:
+            attr_val = arg.split('=')
+            if len(attr_val) != 2:
+                continue
+            attr = attr_val[0]
+            val = attr_val[1]
+            if hasattr(clzz, attr) is not True:
+                continue
+            if type(clzz.__dict__[attr]) is str:
+                val_len = len(val)
+                if val_len < 2 or val[0] != '"' or val[-1] != '"':
+                    continue
+                temp = val[1:-1].replace('"', '\"')
+                temp = temp.replace('_', ' ')
+                obj.__dict__[attr] = temp
+            else:
+                not_str_val = eval(val)
+                if type(clzz.__dict__[attr]) is type(not_str_val):
+                    obj.__dict__[attr] = not_str_val
 
 
 if __name__ == '__main__':
