@@ -26,7 +26,7 @@ class DBStorage():
 
     def __init__(self):
         """Method to create the new engine"""
-        self.__engine = create_engine('mysql+mysqldb://{}:{}@{}/{}'.format(
+        self.__engine = create_engine("mysql+mysqldb://{}:{}@{}/{}".format(
             user, passwd, host, database), pool_pre_ping=True)
         if os.getenv("HNBN_ENV") == "test":
             Base.metadata.drop_all(bind=self.__engine)
@@ -40,14 +40,14 @@ class DBStorage():
             '''only queries for one class name'''
             for objs in self.__session.query(class_dict[cls]).all():
                 print(objs.__class__.__name__)
-                key = str(class_dict[cls]) + '.' + str(objs.id)
+                key = str(objs.__class__.__name__) + '.' + str(objs.id)
                 new_dict[key] = objs
         else:
             '''loops through all current classes and queries for each'''
             for classes in class_dict.keys():
                 for objs in self.__session.query(classes).all():
                     print(objs.__class__.__name__)
-                    key = str(class_dict[cls]) + '.' + str(objs.id)
+                    key = str(classes.__name__) + '.' + str(objs.id)
                     new_dict[key] = objs
         return new_dict
 
@@ -69,5 +69,5 @@ class DBStorage():
         Base.metadata.create_all(bind=self.__engine)
         Session = sessionmaker(bind=self.__engine,
                                       expire_on_commit=False)
-        scpd_session = scoped_session(Session)
-        self.__session = scpd_session()
+        scpd_sess = scoped_session(Session)
+        self.__session = scpd_sess()

@@ -24,4 +24,4 @@ class State(BaseModel, Base):
         for each in storage.all('City').values():
             if each.state_id == self.id:
                 cities.append(each)
-        return cities
+            return cities
