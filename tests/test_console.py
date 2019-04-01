@@ -113,6 +113,23 @@ class TestConsole(unittest.TestCase):
             self.consol.onecmd("all Amenity")
             self.assertNotIn('\'inval\': \'nope\'', f.getvalue())
 
+    def test_create_city_0(self):
+        """Test create command on City with valid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create City state_id=\"12\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all City")
+            self.assertIn('\'state_id\': \'12\'', f.getvalue())
+
+    def test_create_city_1(self):
+        """Test create command on City with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create City num=0")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all City")
+            self.assertNotIn('\'num\': 0', f.getvalue())
+
+
     def test_show(self):
         """Test show command inpout"""
         with patch('sys.stdout', new=StringIO()) as f:
