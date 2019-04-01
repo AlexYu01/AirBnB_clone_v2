@@ -89,6 +89,14 @@ class TestConsole(unittest.TestCase):
             self.assertEqual(
                 "[[User]", f.getvalue()[:7])
 
+    def test_create_basemodel_0(self):
+        """Test create command on BaseModel with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create BaseModel name=\"TV\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all BaseModel")
+            self.assertNotIn('\'name\': \'TV\'', f.getvalue())
+
     def test_create_amenity_0(self):
         """Test create command on Amenity with valid parameters."""
         with patch('sys.stdout', new=StringIO()) as f:
