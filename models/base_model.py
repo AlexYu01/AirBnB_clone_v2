@@ -5,7 +5,7 @@ import models
 from datetime import datetime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime
-
+import os
 
 Base = declarative_base()
 
@@ -47,8 +47,9 @@ class BaseModel:
         Return:
             returns a string of class name, id, and dictionary
         """
+        tmp = self.to_dict()
         return "[{}] ({}) {}".format(
-            type(self).__name__, self.id, self.__dict__)
+            type(self).__name__, self.id, tmp)
 
     def __repr__(self):
         """return a string representaion
@@ -68,11 +69,13 @@ class BaseModel:
             returns a dictionary of all the key values in __dict__
         """
         my_dict = dict(self.__dict__)
-        my_dict["__class__"] = str(type(self).__name__)
-        my_dict["created_at"] = self.created_at.isoformat()
-        my_dict["updated_at"] = self.updated_at.isoformat()
-        if "_sa_instance_state" in my_dict.keys():
-            del my_dict["_sa_instance_state"]
+        if os.getenv("HBNB_TYPE_STORAGE") == "db":
+                if '_sa_instance_state' in my_dict.keys():
+                    del my_dict['_sa_instance_state']
+        else:
+            my_dict["__class__"] = str(type(self).__name__)
+            my_dict["created_at"] = self.created_at.isoformat()
+            my_dict["updated_at"] = self.updated_at.isoformat()
         return my_dict
 
     def delete(self):

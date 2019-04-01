@@ -39,7 +39,6 @@ class DBStorage():
         if cls:
             '''only queries for one class name'''
             for objs in self.__session.query(class_dict[cls]).all():
-                print(objs.__class__.__name__)
                 key = str(objs.__class__.__name__) + '.' + str(objs.id)
                 new_dict[key] = objs
         else:
