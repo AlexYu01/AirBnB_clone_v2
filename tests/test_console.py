@@ -129,7 +129,6 @@ class TestConsole(unittest.TestCase):
             self.consol.onecmd("all City")
             self.assertNotIn('\'num\': 0', f.getvalue())
 
-
     def test_create_place_0(self):
         """Test create command on Place with valid parameters."""
         with patch('sys.stdout', new=StringIO()) as f:
@@ -148,7 +147,21 @@ class TestConsole(unittest.TestCase):
             self.assertNotIn('\'max_guest\': \'String\'', f.getvalue())
 
 
+    def test_create_review_0(self):
+        """Test create command on Review with valid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create Review text=\"Great\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all Review")
+            self.assertIn('\'text\': \'Great\'', f.getvalue())
 
+    def test_create_review_1(self):
+        """Test create command on Review with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create Review text=\"Great\" inval=\"nope\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all Review")
+            self.assertNotIn('\'inval\': \'nope\'', f.getvalue())
 
 
     def test_show(self):
