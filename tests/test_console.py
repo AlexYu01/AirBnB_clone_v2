@@ -89,6 +89,22 @@ class TestConsole(unittest.TestCase):
             self.assertEqual(
                 "[[User]", f.getvalue()[:7])
 
+    def test_create_amenity_0(self):
+        """Test create command on Amenity with valid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create Amenity name=\"TV\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all Amenity")
+            self.assertIn('\'name\': \'TV\'', f.getvalue())
+
+    def test_create_amenity_1(self):
+        """Test create command on Amenity with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create Amenity name=\"TV\" inval=\"nope\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all Amenity")
+            self.assertNotIn('\'inval\': \'nope\'', f.getvalue())
+
     def test_show(self):
         """Test show command inpout"""
         with patch('sys.stdout', new=StringIO()) as f:
