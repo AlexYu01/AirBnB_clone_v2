@@ -1,7 +1,5 @@
 #!/usr/bin/python3
-"""
-Unittest to test FileStorage class
-"""
+"""test for file storage"""
 import unittest
 import pep8
 import json
@@ -17,69 +15,82 @@ from models.engine.file_storage import FileStorage
 
 
 class TestFileStorage(unittest.TestCase):
-    '''testing file storage'''
+    '''this will test the FileStorage'''
 
     @classmethod
     def setUpClass(cls):
-        cls.rev1 = Review()
-        cls.rev1.place_id = "Raleigh"
-        cls.rev1.user_id = "Greg"
-        cls.rev1.text = "Grade A"
+        """set up for test"""
+        cls.user = User()
+        cls.user.first_name = "Kev"
+        cls.user.last_name = "Yo"
+        cls.user.email = "1234@yahoo.com"
+        cls.storage = FileStorage()
 
     @classmethod
     def teardown(cls):
-        del cls.rev1
+        """at the end of the test this will tear it down"""
+        del cls.user
 
-    def teardown(self):
+    def tearDown(self):
+        """teardown"""
         try:
             os.remove("file.json")
-        except:
+        except Exception:
             pass
 
-    def test_style_check(self):
-        """
-        Tests pep8 style
-        """
+    def test_pep8_FileStorage(self):
+        """Tests pep8 style"""
         style = pep8.StyleGuide(quiet=True)
         p = style.check_files(['models/engine/file_storage.py'])
         self.assertEqual(p.total_errors, 0, "fix pep8")
 
     def test_all(self):
-        """
-        Tests method: all (returns dictionary <class>.<id> : <obj instance>)
-        """
+        """tests if all works in File Storage"""
         storage = FileStorage()
-        instances_dic = storage.all()
-        self.assertIsNotNone(instances_dic)
-        self.assertEqual(type(instances_dic), dict)
-        self.assertIs(instances_dic, storage._FileStorage__objects)
+        obj = storage.all()
+        self.assertIsNotNone(obj)
+        self.assertEqual(type(obj), dict)
+        self.assertIs(obj, storage._FileStorage__objects)
 
     def test_new(self):
-        """
-        Tests method: new (saves new object into dictionary)
-        """
-        m_storage = FileStorage()
-        instances_dic = m_storage.all()
-        melissa = User()
-        melissa.id = 999999
-        melissa.name = "Melissa"
-        m_storage.new(melissa)
-        key = melissa.__class__.__name__ + "." + str(melissa.id)
-        #print(instances_dic[key])
-        self.assertIsNotNone(instances_dic[key])
+        """test when new is created"""
+        storage = FileStorage()
+        obj = storage.all()
+        user = User()
+        user.id = 123455
+        user.name = "Kevin"
+        storage.new(user)
+        key = user.__class__.__name__ + "." + str(user.id)
+        self.assertIsNotNone(obj[key])
 
-    def test_reload(self):
+    def test_reload_filestorage(self):
         """
-        Tests method: reload (reloads objects from string file)
+        tests reload
         """
-        a_storage = FileStorage()
+        self.storage.save()
+        Root = os.path.dirname(os.path.abspath("console.py"))
+        path = os.path.join(Root, "file.json")
+        with open(path, 'r') as f:
+            lines = f.readlines()
         try:
-            os.remove("file.json")
+            os.remove(path)
         except:
             pass
-        with open("file.json", "w") as f:
+        self.storage.save()
+        with open(path, 'r') as f:
+            lines2 = f.readlines()
+        self.assertEqual(lines, lines2)
+        try:
+            os.remove(path)
+        except:
+            pass
+        with open(path, "w") as f:
             f.write("{}")
-        with open("file.json", "r") as r:
+        with open(path, "r") as r:
             for line in r:
                 self.assertEqual(line, "{}")
-        self.assertIs(a_storage.reload(), None)
+        self.assertIs(self.storage.reload(), None)
+
+
+if __name__ == "__main__":
+    unittest.main()
