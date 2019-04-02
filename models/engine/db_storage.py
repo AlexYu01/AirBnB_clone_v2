@@ -28,7 +28,7 @@ class DBStorage():
         """Method to create the new engine"""
         self.__engine = create_engine("mysql+mysqldb://{}:{}@{}/{}".format(
             user, passwd, host, database), pool_pre_ping=True)
-        if os.getenv("HNBN_ENV") == "test":
+        if os.getenv("HBNB_ENV") == "test":
             Base.metadata.drop_all(bind=self.__engine)
 
     def all(self, cls=None):
