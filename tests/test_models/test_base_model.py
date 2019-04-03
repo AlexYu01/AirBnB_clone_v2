@@ -12,6 +12,8 @@ class TestBaseModel(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """setup for the test"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            return
         cls.base = BaseModel()
         cls.base.name = "Kev"
         cls.base.num = 20
@@ -20,6 +22,11 @@ class TestBaseModel(unittest.TestCase):
     def teardown(cls):
         """at the end of the test this will tear it down"""
         del cls.base
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            self.skipTest("Using db storage")
 
     def tearDown(self):
         """teardown"""

@@ -13,6 +13,8 @@ class TestCity(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """set up for test"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            return
         cls.city = City()
         cls.city.name = "LA"
         cls.city.state_id = "CA"
@@ -21,6 +23,11 @@ class TestCity(unittest.TestCase):
     def teardown(cls):
         """at the end of the test this will tear it down"""
         del cls.city
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            self.skipTest("Using db storage")
 
     def tearDown(self):
         """teardown"""
