@@ -9,12 +9,13 @@ import os
 
 Base = declarative_base()
 
+
 class BaseModel:
     """This class will defines all common attributes/methods
     for other classes
     """
 
-    id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(String(60), primary_key=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -48,6 +49,10 @@ class BaseModel:
             returns a string of class name, id, and dictionary
         """
         tmp = self.to_dict()
+        if '__class__' in tmp:
+            del tmp['__class__']
+            tmp['created_at'] = self.__dict__['created_at']
+            tmp['updated_at'] = self.__dict__['updated_at']
         return "[{}] ({}) {}".format(
             type(self).__name__, self.id, tmp)
 
@@ -69,13 +74,13 @@ class BaseModel:
             returns a dictionary of all the key values in __dict__
         """
         my_dict = dict(self.__dict__)
-        if os.getenv("HBNB_TYPE_STORAGE") == "db":
-                if '_sa_instance_state' in my_dict.keys():
-                    del my_dict['_sa_instance_state']
-        else:
+        if os.getenv("HBNB_TYPE_STORAGE") != "db":
             my_dict["__class__"] = str(type(self).__name__)
             my_dict["created_at"] = self.created_at.isoformat()
             my_dict["updated_at"] = self.updated_at.isoformat()
+        if '_sa_instance_state' in my_dict.keys():
+            del my_dict['_sa_instance_state']
+
         return my_dict
 
     def delete(self):

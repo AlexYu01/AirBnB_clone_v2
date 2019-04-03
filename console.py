@@ -280,7 +280,8 @@ class HBNBCommand(cmd.Cmd):
                 obj.__dict__[attr] = temp
             else:
                 not_str_val = eval(val)
-                if type(clzz.__dict__[attr]) is type(not_str_val):
+                if clzz.__table__.c[attr].type.python_type is \
+                        type(not_str_val):
                     obj.__dict__[attr] = not_str_val
 
 
