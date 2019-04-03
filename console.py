@@ -123,6 +123,7 @@ class HBNBCommand(cmd.Cmd):
         """
         my_list = []
         if not line:
+            objects = storage.all()
             for key in objects:
                 my_list.append(objects[key])
             print(my_list)
@@ -143,7 +144,7 @@ class HBNBCommand(cmd.Cmd):
             name = key.split('.')
             if name[0] == args[0]:
                 my_list.append(objects[key])
-            print(my_list)
+        print(my_list)
 
     def do_update(self, line):
         """Updates an instanceby adding or updating attribute
