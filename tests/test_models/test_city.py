@@ -3,8 +3,12 @@
 import unittest
 import os
 from models.city import City
+from models.state import State
 from models.base_model import BaseModel
 import pep8
+import sqlalchemy
+import MySQLdb
+from models import storage
 
 
 class TestCity(unittest.TestCase):
@@ -71,6 +75,104 @@ class TestCity(unittest.TestCase):
     def test_to_dict_City(self):
         """test if dictionary works"""
         self.assertEqual('to_dict' in dir(self.city), True)
+
+
+class TestCityDb(unittest.TestCase):
+    """This will test the City class on DB storage"""
+
+    @classmethod
+    def setUpClass(cls):
+        """Create and save a State object to be used during testing of City"""
+        cls.s = State()
+        cls.s.name = "California"
+        cls.s.save()
+        cls.sid = cls.s.id
+
+    @classmethod
+    def tearDownClass(cls):
+        """Delete State object"""
+        del cls.s
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+            self.skipTest("Using file storage")
+        if self.sid is None:
+            self.skipTest("Failed to save a State object into db")
+        self.conn = MySQLdb.connect(host=os.getenv('HBNB_MYSQL_HOST'),
+                                    port=3306,
+                                    user=os.getenv('HBNB_MYSQL_USER'),
+                                    passwd=os.getenv('HBNB_MYSQL_PWD'),
+                                    db=os.getenv('HBNB_MYSQL_DB'),
+                                    charset="utf8")
+
+        self.cur = self.conn.cursor()
+
+    def tearDown(self):
+        """Teardown method to reload session"""
+        storage.reload()
+        self.cur.close()
+        self.conn.close()
+
+    def test_city_normal(self):
+        """Test operation of saving a city object with valid attributes"""
+        c = City()
+        c.name = "San Francisco"
+        c.state_id = self.sid
+        c.save()
+        id = c.id
+        self.cur.execute("SELECT cities.id, states.id FROM cities, states\
+        WHERE states.id = cities.state_id AND cities.id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+        self.assertIn(self.sid, rows[0])
+
+    def test_city_name_edge(self):
+        """Test operation of saving a City object with the attribute `name` at
+        max column constraint to db"""
+        c = City()
+        c.name = 'A' * 128
+        c.state_id = self.sid
+        c.save()
+        id = c.id
+        self.cur.execute("SELECT id FROM cities WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_city_name_error(self):
+        """Test operation of saving a City object with the attribute `name`
+        violating column constraint to db"""
+        with self.assertRaises(sqlalchemy.exc.DataError):
+            c = City()
+            c.name = 'T' * 129
+            c.state_id = self.sid
+            c.save()
+
+    def test_city_state_error(self):
+        """Test operation of saving a City object the attribute `state_id` as
+        None"""
+        with self.assertRaises(sqlalchemy.exc.OperationalError):
+            c = City()
+            c.name = "Nooooo"
+            c.save()
+
+    def test_city_delete(self):
+        """Test operation of deleting a City object"""
+        c = City()
+        c.name = "San Francisco"
+        c.state_id = self.sid
+        c.save()
+        id = c.id
+        self.cur.execute("SELECT cities.id, states.id FROM cities, states\
+        WHERE states.id = cities.state_id AND cities.id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+        self.assertIn(self.sid, rows[0])
+
+        self.cur.execute("DELETE FROM cities WHERE id = '{}'".format(id))
+        self.cur.execute("SELECT id FROM cities WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertEqual((), rows)
 
 
 if __name__ == "__main__":
