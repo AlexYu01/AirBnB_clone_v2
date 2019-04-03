@@ -17,6 +17,9 @@ from models.amenity import Amenity
 from models.place import Place
 from models.review import Review
 from models.engine.file_storage import FileStorage
+from models import storage
+import sqlalchemy
+import MySQLdb
 
 
 class TestConsole(unittest.TestCase):
@@ -369,6 +372,214 @@ class TestConsole(unittest.TestCase):
             self.consol.onecmd("User.update(" + my_id + ", name)")
             self.assertEqual(
                 "** value missing **\n", f.getvalue())
+
+
+class TestConsoleDb(unittest.TestCase):
+    """This will test the console class on DB storage"""
+
+    @classmethod
+    def setUpClass(cls):
+        """setup for the test"""
+        if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+            return
+        try:
+            cls.consol = HBNBCommand()
+            cls.s = State(name='California')
+            cls.s.save()
+            cls.c = City(name='San Francisco', state_id=cls.s.id)
+            cls.c.save()
+            cls.u = User(email='Betty@holberton.com', password='Hello')
+            cls.u.save()
+            cls.p = Place(city_id=cls.c.id, user_id=cls.u.id, name='Home')
+            cls.p.save()
+        except Exception:
+            return
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+            self.skipTest("Using file storage")
+        if self.s.id is None or self.c.id is None or self.u.id is None or\
+                self.p.id is None:
+            self.skipTest("Failed to save objects into database")
+        self.create_conn()
+
+    def tearDown(self):
+        """Teardown method to reload session"""
+        self.cur.close()
+        self.conn.close()
+
+    def create_conn(self):
+        """Setup mysqldb connection and cursor"""
+        self.conn = MySQLdb.connect(host=os.getenv('HBNB_MYSQL_HOST'),
+                                    port=3306,
+                                    user=os.getenv('HBNB_MYSQL_USER'),
+                                    passwd=os.getenv('HBNB_MYSQL_PWD'),
+                                    db=os.getenv('HBNB_MYSQL_DB'),
+                                    charset="utf8")
+        self.cur = self.conn.cursor()
+
+    @unittest.skip('Not updated to Table yet')
+    def test_create_amenity_0(self):
+        """Test create command on Amenity with valid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create Amenity name=\"TV\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all Amenity")
+            self.assertIn('\'name\': \'TV\'', f.getvalue())
+
+    @unittest.skip('Not updated to Table yet')
+    def test_create_amenity_1(self):
+        """Test create command on Amenity with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create Amenity name=\"TV\" inval=\"nope\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all Amenity")
+            self.assertNotIn('\'inval\': \'nope\'', f.getvalue())
+
+    def test_create_city_0(self):
+        """Test create command on City with valid parameters."""
+        self.cur.execute('SELECT COUNT(id) FROM cities')
+        o_count = self.cur.fetchall()
+
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create City state_id="{}"\
+            name="San_Francisco"'.format(self.s.id))
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute('SELECT COUNT(id) FROM cities')
+        n_count = self.cur.fetchall()
+        self.assertNotEqual(o_count, n_count)
+
+    def test_create_city_1(self):
+        """Test create command on City with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create City state_id="{}"\
+            name="San_Francisco" boop=10'.format(self.s.id))
+        id = f.getvalue()[:-1]
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute("SELECT * FROM cities WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIsNotNone(rows)
+        self.assertIn('San Francisco', rows[0])
+        self.assertNotIn('boop', rows[0])
+
+    def test_create_place_0(self):
+        """Test create command on Place with valid parameters."""
+        self.cur.execute('SELECT COUNT(id) FROM places')
+        o_count = self.cur.fetchall()
+
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create Place city_id="{}" user_id="{}"\
+            name="Holberton" description="Nice_house" number_rooms=10\
+            number_bathrooms=3 max_guest=100 price_by_night=9000 latitude=0.0\
+            longitude=9.9'.format(self.c.id, self.u.id))
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute('SELECT COUNT(id) FROM places')
+        n_count = self.cur.fetchall()
+        self.assertNotEqual(o_count, n_count)
+
+    def test_create_place_1(self):
+        """Test create command on Place with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create Place city_id="{}" user_id="{}"\
+            name="Holberton" description="Nice_house" number_rooms=10\
+            number_bathrooms=3 max_guest=100 price_by_night=9000 latitude=0.0\
+            longitude=9.9 I_DONT_EXIST=10'.format(self.c.id, self.u.id))
+        id = f.getvalue()[:-1]
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute("SELECT * FROM places WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIsNotNone(rows)
+        self.assertIn('Holberton', rows[0])
+        self.assertNotIn('I_DONT_EXIST', rows[0])
+
+    @unittest.skip('Not updated to Table yet')
+    def test_create_review_0(self):
+        """Test create command on Review with valid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create Review text=\"Great\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all Review")
+            self.assertIn('\'text\': \'Great\'', f.getvalue())
+
+    @unittest.skip('Not updated to Table yet')
+    def test_create_review_1(self):
+        """Test create command on Review with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("create Review text=\"Great\" inval=\"nope\"")
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd("all Review")
+            self.assertNotIn('\'inval\': \'nope\'', f.getvalue())
+
+    def test_create_state_0(self):
+        """Test create command on State with valid parameters."""
+        self.cur.execute('SELECT COUNT(id) FROM states')
+        o_count = self.cur.fetchall()
+
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create State name="California"')
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute('SELECT COUNT(id) FROM states')
+        n_count = self.cur.fetchall()
+        self.assertNotEqual(o_count, n_count)
+
+    def test_create_state_1(self):
+        """Test create command on State with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create State name="Texas"\
+            I_DONT_EXIST=10')
+        id = f.getvalue()[:-1]
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute("SELECT * FROM states WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIsNotNone(rows)
+        self.assertIn('Texas', rows[0])
+        self.assertNotIn('I_DONT_EXIST', rows[0])
+
+    def test_create_user_0(self):
+        """Test create command on User with valid parameters."""
+        self.cur.execute('SELECT COUNT(id) FROM users')
+        o_count = self.cur.fetchall()
+
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create User email="BettyHolberton@gmail.com"\
+            password="not_encrypted" first_name="Betty"\
+            last_name="Holberton"')
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute('SELECT COUNT(id) FROM users')
+        n_count = self.cur.fetchall()
+        self.assertNotEqual(o_count, n_count)
+
+    def test_create_user_1(self):
+        """Test create command on User with invalid parameters."""
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create User email="BettyHolberton@gmail.com"\
+            password="not_encrypted" first_name="Betty"\
+            last_name="Holberton" I_DONT_EXIST=10')
+        id = f.getvalue()[:-1]
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute("SELECT * FROM users WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIsNotNone(rows)
+        self.assertIn('BettyHolberton@gmail.com', rows[0])
+        self.assertNotIn('I_DONT_EXIST', rows[0])
+
 
 if __name__ == "__main__":
     unittest.main()
