@@ -3,11 +3,12 @@
 import unittest
 import os
 from models.state import State
+from models.city import City
 from models.base_model import BaseModel
 import pep8
-from test.support import EnvironmentVarGuard
 import sqlalchemy
 import MySQLdb
+import _mysql_exceptions
 from models import storage
 
 
@@ -81,6 +82,7 @@ class TestStateDb(unittest.TestCase):
         """Setup method"""
         if os.getenv('HBNB_TYPE_STORAGE') != 'db':
             self.skipTest("Using file storage")
+        storage.reload()
         self.conn = MySQLdb.connect(host=os.getenv('HBNB_MYSQL_HOST'),
                                     port=3306,
                                     user=os.getenv('HBNB_MYSQL_USER'),
@@ -92,7 +94,6 @@ class TestStateDb(unittest.TestCase):
 
     def tearDown(self):
         """Teardown method to reload session"""
-        storage.reload()
         self.cur.close()
         self.conn.close()
 
@@ -124,6 +125,33 @@ class TestStateDb(unittest.TestCase):
             s = State()
             s.name = 'T' * 129
             s.save()
+
+    def test_state_deletion(self):
+        """Test operation of saving a state object with valid attributes"""
+        s = State()
+        s.name = "California"
+        s.save()
+        id = s.id
+        c = City()
+        c.name = "San Francisco!!!!!!!!!"
+        c.state_id = id
+        c.save()
+        cid = c.id
+        if cid is None:
+            self.skipTest("Failed to save City object to db")
+        self.cur.execute("SELECT states.id, cities.id FROM states, cities\
+        WHERE states.id = cities.state_id AND states.id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+        self.assertIn(cid, rows[0])
+        self.cur.execute("DELETE FROM states WHERE id = '{}'".format(id))
+        self.cur.execute("SELECT id FROM states WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertEqual((), rows)
+        self.cur.execute("SELECT id FROM cities WHERE id = '{}'".format(cid))
+        rows = self.cur.fetchall()
+        self.assertEqual((), rows)
+
 
 if __name__ == "__main__":
     unittest.main()
