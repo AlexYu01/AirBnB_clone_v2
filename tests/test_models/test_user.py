@@ -5,6 +5,9 @@ import os
 from models.user import User
 from models.base_model import BaseModel
 import pep8
+import MySQLdb
+from models import storage
+import sqlalchemy
 
 
 class TestUser(unittest.TestCase):
@@ -77,6 +80,150 @@ class TestUser(unittest.TestCase):
     def test_to_dict_User(self):
         """test if dictionary works"""
         self.assertEqual('to_dict' in dir(self.user), True)
+
+
+class TestUserDb(unittest.TestCase):
+    """This will test the City class on DB storage"""
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+            self.skipTest("Using file storage")
+        self.conn = MySQLdb.connect(host=os.getenv('HBNB_MYSQL_HOST'),
+                                    port=3306,
+                                    user=os.getenv('HBNB_MYSQL_USER'),
+                                    passwd=os.getenv('HBNB_MYSQL_PWD'),
+                                    db=os.getenv('HBNB_MYSQL_DB'),
+                                    charset="utf8")
+
+        self.cur = self.conn.cursor()
+
+    def tearDown(self):
+        """Teardown method to reload session"""
+        storage.reload()
+        self.cur.close()
+        self.conn.close()
+
+    def test_user_normal(self):
+        """Test operation of saving a User object with valid attributes"""
+        u = User(email="Betty@Holberton.com", password="Hello",
+                 first_name="Betty", last_name="Holberton")
+        u.save()
+        id = u.id
+        self.cur.execute("SELECT id FROM users WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_user_email_edge(self):
+        """Test operation of saving a User object with the attribute `email` at
+        max column constraint to db"""
+        u = User(email='A' * 128, password="Hello",
+                 first_name="Betty", last_name="Holberton")
+        u.save()
+        id = u.id
+        self.cur.execute("SELECT id FROM users WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_city_email_error(self):
+        """Test operation of saving a User object with the attribute `email`
+        violating column constraint to db"""
+        with self.assertRaises(sqlalchemy.exc.DataError):
+            u = User(email='O' * 129, password="Hello",
+                     first_name="Betty", last_name="Holberton")
+            u.save()
+
+    def test_user_password_edge(self):
+        """Test operation of saving a User object with the attribute `password`
+        at max column constraint to db"""
+        u = User(email="Betty@Holberton.com", password='P' * 128,
+                 first_name="Betty", last_name="Holberton")
+        u.save()
+        id = u.id
+        self.cur.execute("SELECT id FROM users WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_city_password_error(self):
+        """Test operation of saving a User object with the attribute `password`
+        violating column constraint to db"""
+        with self.assertRaises(sqlalchemy.exc.DataError):
+            u = User(email="Betty@Holberton.com", password='A' * 129,
+                     first_name="Betty", last_name="Holberton")
+            u.save()
+
+    def test_user_first_edge(self):
+        """Test operation of saving a User object with the attribute
+        `first_name` at max column constraint to db"""
+        u = User(email="Betty@Holberton.com", password="Hello",
+                 first_name='B' * 128, last_name="Holberton")
+        u.save()
+        id = u.id
+        self.cur.execute("SELECT id FROM users WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_city_first_error(self):
+        """Test operation of saving a User object with the attribute
+        `first_name` violating column constraint to db"""
+        with self.assertRaises(sqlalchemy.exc.DataError):
+            u = User(email="Betty@Holberton.com", password="Hello",
+                     first_name='K' * 129, last_name="Holberton")
+            u.save()
+
+    def test_user_last_edge(self):
+        """Test operation of saving a User object with the attribute
+        `last_name` at max column constraint to db"""
+        u = User(email="Betty@Holberton.com", password="Hello",
+                 first_name="Betty", last_name='H' * 128)
+        u.save()
+        id = u.id
+        self.cur.execute("SELECT id FROM users WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_city_last_error(self):
+        """Test operation of saving a User object with the attribute
+        `last_name` violating column constraint to db"""
+        with self.assertRaises(sqlalchemy.exc.DataError):
+            u = User(email="Betty@Holberton.com", password="Hello",
+                     first_name="Betty", last_name='H' * 129)
+            u.save()
+
+    def test_allowed_null(self):
+        """Test operation of saving a User object with allowed NULLS"""
+        u = User(email="Betty@Holberton.com", password="NoNames")
+        u.save()
+        id = u.id
+        self.cur.execute("SELECT id FROM users WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_no_null_0(self):
+        """Test operation of saving a User object with not allowed NULLS"""
+        with self.assertRaises(sqlalchemy.exc.OperationalError):
+            u = User(email="Betty@Holberton.com")
+            u.save()
+
+    def test_no_null_1(self):
+        """Test operationo f saving a User object with not allowed NULLS"""
+        with self.assertRaises(sqlalchemy.exc.OperationalError):
+            u = User(password="NoEmail")
+            u.save()
+
+    def test_city_delete(self):
+        u = User(email="Betty@Holberton.com", password="Hello",
+                 first_name="Betty", last_name="Holberton")
+        u.save()
+        id = u.id
+        self.cur.execute("SELECT id FROM users WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+        self.cur.execute("DELETE FROM users WHERE id = '{}'".format(id))
+        self.cur.execute("SELECT id FROM users WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertEqual((), rows)
 
 
 if __name__ == "__main__":
