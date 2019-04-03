@@ -5,6 +5,7 @@ import os
 from models.place import Place
 from models.base_model import BaseModel
 import pep8
+from test.support import EnvironmentVarGuard
 
 
 class TestPlace(unittest.TestCase):
@@ -13,6 +14,9 @@ class TestPlace(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """set up for test"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            return
+        cls.place = Place()
         cls.place = Place()
         cls.place.city_id = "1234-abcd"
         cls.place.user_id = "4321-dcba"
@@ -30,6 +34,11 @@ class TestPlace(unittest.TestCase):
     def teardown(cls):
         """at the end of the test this will tear it down"""
         del cls.place
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            self.skipTest("Using db storage")
 
     def tearDown(self):
         """teardown"""
@@ -92,6 +101,18 @@ class TestPlace(unittest.TestCase):
         """test if dictionary works"""
         self.assertEqual('to_dict' in dir(self.place), True)
 
+
+class TestPlaceDb(unittest.TestCase):
+    """This will test the Place class on DB storage"""
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup for the test"""
+        cls.env = EnvironmentVarGuard()
+        cls.env.set('Test', 'me')
+
+    def test_something(self):
+        self.assertEqual(os.getenv('Test'), 'me')
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,6 +13,8 @@ class TestAmenity(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """set up for test"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            return
         cls.amenity = Amenity()
         cls.amenity.name = "Breakfast"
 
@@ -20,6 +22,11 @@ class TestAmenity(unittest.TestCase):
     def teardown(cls):
         """at the end of the test this will tear it down"""
         del cls.amenity
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            self.skipTest("Using db storage")
 
     def tearDown(self):
         """teardown"""

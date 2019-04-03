@@ -11,6 +11,7 @@ from models.amenity import Amenity
 from models.place import Place
 from models.review import Review
 from shlex import split
+import os
 
 
 class HBNBCommand(cmd.Cmd):
@@ -43,6 +44,8 @@ class HBNBCommand(cmd.Cmd):
                 raise SyntaxError()
             my_list = line.split(" ")
             obj = eval("{}()".format(my_list[0]))
+            if len(my_list) > 1:
+                self.fill_out(obj, my_list)
             obj.save()
             print("{}".format(obj.id))
         except SyntaxError:
@@ -116,11 +119,11 @@ class HBNBCommand(cmd.Cmd):
     def do_all(self, line):
         """Prints all string representation of all instances
         Exceptions:
-            NameError: when there is no object taht has the name
+            NameError: when there is no object that has the name
         """
-        objects = storage.all()
         my_list = []
         if not line:
+            objects = storage.all()
             for key in objects:
                 my_list.append(objects[key])
             print(my_list)
@@ -129,13 +132,19 @@ class HBNBCommand(cmd.Cmd):
             args = line.split(" ")
             if args[0] not in self.all_classes:
                 raise NameError()
-            for key in objects:
-                name = key.split('.')
-                if name[0] == args[0]:
-                    my_list.append(objects[key])
-            print(my_list)
         except NameError:
             print("** class doesn't exist **")
+            return
+
+        if os.getenv("HBNB_TYPE_STORAGE") == "db":
+            objects = storage.all(line)
+        else:
+            objects = storage.all()
+        for key in objects:
+            name = key.split('.')
+            if name[0] == args[0]:
+                my_list.append(objects[key])
+        print(my_list)
 
     def do_update(self, line):
         """Updates an instanceby adding or updating attribute
@@ -169,6 +178,7 @@ class HBNBCommand(cmd.Cmd):
             except Exception:
                 v.__dict__[my_list[2]] = my_list[3]
                 v.save()
+
         except SyntaxError:
             print("** class name missing **")
         except NameError:
@@ -247,6 +257,35 @@ class HBNBCommand(cmd.Cmd):
                     self.do_update(args)
         else:
             cmd.Cmd.default(self, line)
+
+    def fill_out(self, obj, args):
+        """Sets the attributes for the newly created objects with the
+        parameters found in args if the class of the object has them.
+        Args:
+            obj: The newly created object.
+            args: Input list of args.
+        """
+        clzz = eval(args[0])
+        for arg in args[1:]:
+            attr_val = arg.split('=')
+            if len(attr_val) != 2:
+                continue
+            attr = attr_val[0]
+            val = attr_val[1]
+            if hasattr(clzz, attr) is not True:
+                continue
+            if clzz.__table__.c[attr].type.python_type is str:
+                val_len = len(val)
+                if val_len < 2 or val[0] != '"' or val[-1] != '"':
+                    continue
+                temp = val[1:-1].replace('"', '\"')
+                temp = temp.replace('_', ' ')
+                obj.__dict__[attr] = temp
+            else:
+                not_str_val = eval(val)
+                if clzz.__table__.c[attr].type.python_type is \
+                        type(not_str_val):
+                    obj.__dict__[attr] = not_str_val
 
 
 if __name__ == '__main__':
