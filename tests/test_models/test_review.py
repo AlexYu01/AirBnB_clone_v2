@@ -13,6 +13,8 @@ class TestReview(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """set up for test"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            return
         cls.rev = Review()
         cls.rev.place_id = "4321-dcba"
         cls.rev.user_id = "123-bca"
@@ -22,6 +24,11 @@ class TestReview(unittest.TestCase):
     def teardown(cls):
         """at the end of the test this will tear it down"""
         del cls.rev
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            self.skipTest("Using db storage")
 
     def tearDown(self):
         """teardown"""
