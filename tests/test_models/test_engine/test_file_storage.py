@@ -59,6 +59,33 @@ class TestFileStorage(unittest.TestCase):
         self.assertEqual(type(obj), dict)
         self.assertIs(obj, storage._FileStorage__objects)
 
+    def test_all_class(self):
+        """tests if all with class works in File Storage"""
+        storage = FileStorage()
+        storage.new(State())
+        objs = storage.all()
+        u_objs = storage.all(User)
+        self.assertIsNotNone(objs)
+        self.assertIsNotNone(u_objs)
+        self.assertEqual(type(objs), dict)
+        self.assertEqual(type(u_objs), dict)
+        self.assertEqual(objs, storage.all())
+        self.assertNotEqual(u_objs, storage.all())
+        self.assertNotEqual(objs, u_objs)
+
+    def test_delete(self):
+        """Tests if filestorage deletion works"""
+        u = User(first_name="Hello", last_name="Good bye")
+        key = u.to_dict()['__class__'] + '.' + u.id
+        objs = self.storage.all()
+        self.assertNotIn(key, objs)
+        self.storage.new(u)
+        objs = self.storage.all()
+        self.assertIn(key, objs)
+        self.storage.delete(u)
+        objs = self.storage.all()
+        self.assertNotIn(key, objs)
+
     def test_new(self):
         """test when new is created"""
         storage = FileStorage()
