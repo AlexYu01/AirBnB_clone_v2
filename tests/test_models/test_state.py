@@ -5,6 +5,10 @@ import os
 from models.state import State
 from models.base_model import BaseModel
 import pep8
+from test.support import EnvironmentVarGuard
+import sqlalchemy
+import MySQLdb
+from models import storage
 
 
 class TestState(unittest.TestCase):
@@ -13,6 +17,8 @@ class TestState(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """set up for test"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            return
         cls.state = State()
         cls.state.name = "CA"
 
@@ -20,6 +26,11 @@ class TestState(unittest.TestCase):
     def teardown(cls):
         """at the end of the test this will tear it down"""
         del cls.state
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            self.skipTest("Using db storage")
 
     def tearDown(self):
         """teardown"""
@@ -62,6 +73,57 @@ class TestState(unittest.TestCase):
         """test if dictionary works"""
         self.assertEqual('to_dict' in dir(self.state), True)
 
+
+class TestStateDb(unittest.TestCase):
+    """This will test the State class on DB storage"""
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+            self.skipTest("Using file storage")
+        self.conn = MySQLdb.connect(host=os.getenv('HBNB_MYSQL_HOST'),
+                                    port=3306,
+                                    user=os.getenv('HBNB_MYSQL_USER'),
+                                    passwd=os.getenv('HBNB_MYSQL_PWD'),
+                                    db=os.getenv('HBNB_MYSQL_DB'),
+                                    charset="utf8")
+
+        self.cur = self.conn.cursor()
+
+    def tearDown(self):
+        """Teardown method to reload session"""
+        storage.reload()
+        self.cur.close()
+        self.conn.close()
+
+    def test_state_normal(self):
+        """Test operation of saving a state object with valid attributes"""
+        s = State()
+        s.name = "California"
+        s.save()
+        id = s.id
+        self.cur.execute("SELECT id FROM states WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_state_edge(self):
+        """Test operation of saving a State object with an attribute at the max
+        of column constraint to db"""
+        s = State()
+        s.name = 'A' * 128
+        s.save()
+        id = s.id
+        self.cur.execute("SELECT id FROM states WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_state_error(self):
+        """Test operation of saving a State object with an attribute that
+        violates column constraints to db"""
+        with self.assertRaises(sqlalchemy.exc.DataError):
+            s = State()
+            s.name = 'T' * 129
+            s.save()
 
 if __name__ == "__main__":
     unittest.main()
