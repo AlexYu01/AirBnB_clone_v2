@@ -8,8 +8,10 @@ from sqlalchemy.orm import relationship
 class City(BaseModel, Base):
     """This is the class for City
     Attributes:
+        __tablename__: Name of the table in mysql
         state_id: The state id
         name: input name
+        places: Place objects that are connected to a City object
     """
     __tablename__ = 'cities'
     name = Column(String(128), nullable=False)
