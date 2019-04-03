@@ -19,6 +19,7 @@ passwd = os.getenv("HBNB_MYSQL_PWD")
 class_dict = {"User": User, "State": State, "City": City, "Place": Place,
               "Amenity": Amenity, "Review": Review}
 
+
 class DBStorage():
     """New database storage class"""
     __engine = None
@@ -67,6 +68,6 @@ class DBStorage():
         '''Creates current db session with sessionmaker'''
         Base.metadata.create_all(bind=self.__engine)
         Session = sessionmaker(bind=self.__engine,
-                                      expire_on_commit=False)
+                               expire_on_commit=False)
         scpd_sess = scoped_session(Session)
         self.__session = scpd_sess()
