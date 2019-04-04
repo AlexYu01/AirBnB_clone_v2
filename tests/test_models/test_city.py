@@ -4,6 +4,8 @@ import unittest
 import os
 from models.city import City
 from models.state import State
+from models.user import User
+from models.place import Place
 from models.base_model import BaseModel
 import pep8
 import sqlalchemy
@@ -99,6 +101,16 @@ class TestCityDb(unittest.TestCase):
             self.skipTest("Using file storage")
         if self.sid is None:
             self.skipTest("Failed to save a State object into db")
+        self.create_conn()
+
+    def tearDown(self):
+        """Teardown method to reload session"""
+        storage.reload()
+        self.cur.close()
+        self.conn.close()
+
+    def create_conn(self):
+        """Setup mysqldb connection and cursor"""
         self.conn = MySQLdb.connect(host=os.getenv('HBNB_MYSQL_HOST'),
                                     port=3306,
                                     user=os.getenv('HBNB_MYSQL_USER'),
@@ -107,12 +119,6 @@ class TestCityDb(unittest.TestCase):
                                     charset="utf8")
 
         self.cur = self.conn.cursor()
-
-    def tearDown(self):
-        """Teardown method to reload session"""
-        storage.reload()
-        self.cur.close()
-        self.conn.close()
 
     def test_city_normal(self):
         """Test operation of saving a city object with valid attributes"""
@@ -158,21 +164,39 @@ class TestCityDb(unittest.TestCase):
 
     def test_city_delete(self):
         """Test operation of deleting a City object"""
-        c = City()
-        c.name = "San Francisco"
-        c.state_id = self.sid
+        c = City(name="San Francisco", state_id=self.sid)
         c.save()
         id = c.id
+        u = User(email='Betty@holberton.com', password='Hello')
+        u.save()
+        p = Place(city_id=id, user_id=u.id, name='Home', number_rooms=10,
+                  number_bathrooms=10, max_guest=10, price_by_night=9000)
+        p.save()
         self.cur.execute("SELECT cities.id, states.id FROM cities, states\
         WHERE states.id = cities.state_id AND cities.id = '{}'".format(id))
         rows = self.cur.fetchall()
         self.assertIn(id, rows[0])
         self.assertIn(self.sid, rows[0])
 
-        self.cur.execute("DELETE FROM cities WHERE id = '{}'".format(id))
-        self.cur.execute("SELECT id FROM cities WHERE id = '{}'".format(id))
+        self.cur.execute("SELECT cities.id, places.id FROM cities, places\
+        WHERE places.city_id = cities.id AND cities.id = '{}'".format(id))
         rows = self.cur.fetchall()
-        self.assertEqual((), rows)
+        self.assertIn(p.id, rows[0])
+
+        storage.delete(c)
+        storage.save()
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute("SELECT COUNT(id) FROM cities WHERE id = '{}'"
+                         .format(id))
+        count = self.cur.fetchall()[0][0]
+        self.assertEqual(0, count)
+
+        self.cur.execute("SELECT COUNT(id) FROM places WHERE id = '{}'"
+                         .format(p.id))
+        count = self.cur.fetchall()[0][0]
+        self.assertEqual(0, count)
 
 
 if __name__ == "__main__":

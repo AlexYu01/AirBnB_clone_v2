@@ -33,59 +33,50 @@ class TestDBStorage(unittest.TestCase):
         p = style.check_files(['models/engine/db_storage.py'])
         self.assertEqual(p.total_errors, 0, "fix pep8")
 
-    @unittest.skip("Review is not updated yet")
     def test_all(self):
         """tests if all works in database Storage"""
         obj = storage.all()
         self.assertEqual(type(obj), dict)
 
-    @unittest.skip("Review is not updated yet")
     def test_all_class(self):
         """tests if all with class works in database Storage"""
         storage.new(State(name='Hawaii'))
         objs = storage.all()
         u_objs = storage.all(User)
         self.assertIsNotNone(objs)
-        self.assertIsNotNone(u_objs)
         self.assertEqual(type(objs), dict)
         self.assertEqual(type(u_objs), dict)
         self.assertEqual(objs, storage.all())
         self.assertNotEqual(u_objs, storage.all())
         self.assertNotEqual(objs, u_objs)
 
-    @unittest.skip("Review is not updated yet")
     def test_delete(self):
         """Tests if database deletion works"""
-        u = User(first_name="Hello", last_name="Good bye")
-        key = u.to_dict()['__class__'] + '.' + u.id
+        u = User(email="Ya", password="lal", first_name="Hello",
+                 last_name="Good bye")
+        key = 'User' + '.' + u.id
         objs = storage.all()
         self.assertNotIn(key, objs)
         storage.new(u)
+        storage.save()
         objs = storage.all()
         self.assertIn(key, objs)
         storage.delete(u)
         objs = storage.all()
         self.assertNotIn(key, objs)
 
-    @unittest.skip("Review is not updated yet")
     def test_new(self):
         """test when new is called"""
         obj = storage.all()
-        s = State('New York')
-        self.assertIsNone(storage.__session.new)
-        storage.new(s)
-        self.assertIsNotNone(storage.__session.new)
+        s = State(name='New York')
+        self.assertIsNone(storage.new(s))
 
-    @unittest.skip("Review is not updated yet")
     def test_save(self):
         """test when save is called"""
         obj = storage.all()
-        s = State('Nevada')
-        self.assertIsNone(storage.__session.new)
+        s = State(name='Nevada')
         storage.new(s)
-        self.assertIsNotNone(storage.__session.new)
-        storage.save()
-        self.assertInNone(storage.__session.new)
+        self.assertIsNone(storage.save())
 
     def test_reload_db(self):
         """Test DBStorage reload does not error out

@@ -105,7 +105,6 @@ class TestConsole(unittest.TestCase):
             self.consol.onecmd("all BaseModel")
             self.assertNotIn('\'name\': \'TV\'', f.getvalue())
 
-    @unittest.skip('Not updated to Table yet')
     def test_create_amenity_0(self):
         """Test create command on Amenity with valid parameters."""
         with patch('sys.stdout', new=StringIO()) as f:
@@ -114,7 +113,6 @@ class TestConsole(unittest.TestCase):
             self.consol.onecmd("all Amenity")
             self.assertIn('\'name\': \'TV\'', f.getvalue())
 
-    @unittest.skip('Not updated to Table yet')
     def test_create_amenity_1(self):
         """Test create command on Amenity with invalid parameters."""
         with patch('sys.stdout', new=StringIO()) as f:
@@ -169,7 +167,6 @@ class TestConsole(unittest.TestCase):
             self.consol.onecmd("all Place")
             self.assertNotIn('\'max_guest\': \'String\'', f.getvalue())
 
-    @unittest.skip('Not updated to Table yet')
     def test_create_review_0(self):
         """Test create command on Review with valid parameters."""
         with patch('sys.stdout', new=StringIO()) as f:
@@ -178,7 +175,6 @@ class TestConsole(unittest.TestCase):
             self.consol.onecmd("all Review")
             self.assertIn('\'text\': \'Great\'', f.getvalue())
 
-    @unittest.skip('Not updated to Table yet')
     def test_create_review_1(self):
         """Test create command on Review with invalid parameters."""
         with patch('sys.stdout', new=StringIO()) as f:
@@ -419,23 +415,33 @@ class TestConsoleDb(unittest.TestCase):
                                     charset="utf8")
         self.cur = self.conn.cursor()
 
-    @unittest.skip('Not updated to Table yet')
     def test_create_amenity_0(self):
         """Test create command on Amenity with valid parameters."""
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("create Amenity name=\"TV\"")
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all Amenity")
-            self.assertIn('\'name\': \'TV\'', f.getvalue())
+        self.cur.execute('SELECT COUNT(id) FROM amenities')
+        o_count = self.cur.fetchall()
 
-    @unittest.skip('Not updated to Table yet')
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create Amenity name="TV"')
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute('SELECT COUNT(id) FROM amenities')
+        n_count = self.cur.fetchall()
+        self.assertNotEqual(o_count, n_count)
+
     def test_create_amenity_1(self):
         """Test create command on Amenity with invalid parameters."""
         with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("create Amenity name=\"TV\" inval=\"nope\"")
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all Amenity")
-            self.assertNotIn('\'inval\': \'nope\'', f.getvalue())
+            self.consol.onecmd('create Amenity name="Couch" inval="nope"')
+        id = f.getvalue()[:-1]
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute("SELECT * FROM amenities WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIsNotNone(rows)
+        self.assertIn('Couch', rows[0])
+        self.assertNotIn('inval', rows[0])
 
     def test_create_city_0(self):
         """Test create command on City with valid parameters."""
@@ -501,23 +507,35 @@ class TestConsoleDb(unittest.TestCase):
         self.assertIn('Holberton', rows[0])
         self.assertNotIn('I_DONT_EXIST', rows[0])
 
-    @unittest.skip('Not updated to Table yet')
     def test_create_review_0(self):
         """Test create command on Review with valid parameters."""
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("create Review text=\"Great\"")
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all Review")
-            self.assertIn('\'text\': \'Great\'', f.getvalue())
+        self.cur.execute('SELECT COUNT(id) FROM reviews')
+        o_count = self.cur.fetchall()
 
-    @unittest.skip('Not updated to Table yet')
+        with patch('sys.stdout', new=StringIO()) as f:
+            self.consol.onecmd('create Review text="Great" place_id="{}"\
+                               user_id="{}"'.format(self.p.id, self.u.id))
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute('SELECT COUNT(id) FROM reviews')
+        n_count = self.cur.fetchall()
+        self.assertNotEqual(o_count, n_count)
+
     def test_create_review_1(self):
         """Test create command on Review with invalid parameters."""
         with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("create Review text=\"Great\" inval=\"nope\"")
-        with patch('sys.stdout', new=StringIO()) as f:
-            self.consol.onecmd("all Review")
-            self.assertNotIn('\'inval\': \'nope\'', f.getvalue())
+            self.consol.onecmd('create Review text="Great" place_id="{}"\
+                               user_id="{}" nope=10'
+                               .format(self.p.id, self.u.id))
+        id = f.getvalue()[:-1]
+
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute("SELECT * FROM reviews WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIsNotNone(rows)
+        self.assertIn('Great', rows[0])
+        self.assertNotIn('nope', rows[0])
 
     def test_create_state_0(self):
         """Test create command on State with valid parameters."""
