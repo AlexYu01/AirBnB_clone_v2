@@ -38,16 +38,15 @@ class DBStorage():
         """
         new_dict = {}
         if cls:
-            if cls not in class_dict:
-                return new_dict
             '''only queries for one class name'''
-            for objs in self.__session.query(cls).all():
+            for objs in self.__session.query(class_dict[cls]).all():
                 key = str(objs.__class__.__name__) + '.' + str(objs.id)
                 new_dict[key] = objs
         else:
             '''loops through all current classes and queries for each'''
-            for classes in class_dict.values():
+            for classes in class_dict.keys():
                 for objs in self.__session.query(classes).all():
+                    print(objs.__class__.__name__)
                     key = str(classes.__name__) + '.' + str(objs.id)
                     new_dict[key] = objs
         return new_dict
