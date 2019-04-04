@@ -71,4 +71,6 @@ class DBStorage():
         Session = sessionmaker(bind=self.__engine,
                                expire_on_commit=False)
         scpd_sess = scoped_session(Session)
+        if self.__session is not None:
+            self.__session.close()
         self.__session = scpd_sess()
