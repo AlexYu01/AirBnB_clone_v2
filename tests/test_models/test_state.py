@@ -8,7 +8,6 @@ from models.base_model import BaseModel
 import pep8
 import sqlalchemy
 import MySQLdb
-import _mysql_exceptions
 from models import storage
 
 
@@ -128,13 +127,10 @@ class TestStateDb(unittest.TestCase):
 
     def test_state_deletion(self):
         """Test operation of saving a state object with valid attributes"""
-        s = State()
-        s.name = "California"
+        s = State(name="California")
         s.save()
         id = s.id
-        c = City()
-        c.name = "San Francisco!!!!!!!!!"
-        c.state_id = id
+        c = City(name="San Francisco!!!!", state_id=id)
         c.save()
         cid = c.id
         if cid is None:
@@ -144,7 +140,11 @@ class TestStateDb(unittest.TestCase):
         rows = self.cur.fetchall()
         self.assertIn(id, rows[0])
         self.assertIn(cid, rows[0])
-        self.cur.execute("DELETE FROM states WHERE id = '{}'".format(id))
+
+        storage.delete(s)
+        storage.save()
+        self.tearDown()
+        self.setUp()
         self.cur.execute("SELECT id FROM states WHERE id = '{}'".format(id))
         rows = self.cur.fetchall()
         self.assertEqual((), rows)

@@ -3,6 +3,10 @@
 import unittest
 import os
 from models.user import User
+from models.state import State
+from models.place import Place
+from models.city import City
+from models.review import Review
 from models.base_model import BaseModel
 import pep8
 import MySQLdb
@@ -89,6 +93,16 @@ class TestUserDb(unittest.TestCase):
         """Setup method"""
         if os.getenv('HBNB_TYPE_STORAGE') != 'db':
             self.skipTest("Using file storage")
+        self.create_conn()
+
+    def tearDown(self):
+        """Teardown method to reload session"""
+        storage.reload()
+        self.cur.close()
+        self.conn.close()
+
+    def create_conn(self):
+        """Create mysqldb connection"""
         self.conn = MySQLdb.connect(host=os.getenv('HBNB_MYSQL_HOST'),
                                     port=3306,
                                     user=os.getenv('HBNB_MYSQL_USER'),
@@ -97,12 +111,6 @@ class TestUserDb(unittest.TestCase):
                                     charset="utf8")
 
         self.cur = self.conn.cursor()
-
-    def tearDown(self):
-        """Teardown method to reload session"""
-        storage.reload()
-        self.cur.close()
-        self.conn.close()
 
     def test_user_normal(self):
         """Test operation of saving a User object with valid attributes"""
@@ -125,7 +133,7 @@ class TestUserDb(unittest.TestCase):
         rows = self.cur.fetchall()
         self.assertIn(id, rows[0])
 
-    def test_city_email_error(self):
+    def test_user_email_error(self):
         """Test operation of saving a User object with the attribute `email`
         violating column constraint to db"""
         with self.assertRaises(sqlalchemy.exc.DataError):
@@ -144,7 +152,7 @@ class TestUserDb(unittest.TestCase):
         rows = self.cur.fetchall()
         self.assertIn(id, rows[0])
 
-    def test_city_password_error(self):
+    def test_user_password_error(self):
         """Test operation of saving a User object with the attribute `password`
         violating column constraint to db"""
         with self.assertRaises(sqlalchemy.exc.DataError):
@@ -163,7 +171,7 @@ class TestUserDb(unittest.TestCase):
         rows = self.cur.fetchall()
         self.assertIn(id, rows[0])
 
-    def test_city_first_error(self):
+    def test_user_first_error(self):
         """Test operation of saving a User object with the attribute
         `first_name` violating column constraint to db"""
         with self.assertRaises(sqlalchemy.exc.DataError):
@@ -182,7 +190,7 @@ class TestUserDb(unittest.TestCase):
         rows = self.cur.fetchall()
         self.assertIn(id, rows[0])
 
-    def test_city_last_error(self):
+    def test_user_last_error(self):
         """Test operation of saving a User object with the attribute
         `last_name` violating column constraint to db"""
         with self.assertRaises(sqlalchemy.exc.DataError):
@@ -211,19 +219,53 @@ class TestUserDb(unittest.TestCase):
             u = User(password="NoEmail")
             u.save()
 
-    def test_city_delete(self):
+    def test_user_delete(self):
+        """Test operation of deleting a City object"""
         u = User(email="Betty@Holberton.com", password="Hello",
                  first_name="Betty", last_name="Holberton")
         u.save()
         id = u.id
+        s = State(name="NY")
+        s.save()
+        c = City(name='NYC', state_id=s.id)
+        c.save()
+        p = Place(city_id=c.id, user_id=id, name="Home", number_rooms=10,
+                  number_bathrooms=10, max_guest=10, price_by_night=9000)
+        p.save()
+        r = Review(place_id=p.id, user_id=id, text="Greeat")
+        r.save()
         self.cur.execute("SELECT id FROM users WHERE id = '{}'".format(id))
         rows = self.cur.fetchall()
-        self.assertIn(id, rows[0])
+        self.assertEqual(id, rows[0][0])
 
-        self.cur.execute("DELETE FROM users WHERE id = '{}'".format(id))
-        self.cur.execute("SELECT id FROM users WHERE id = '{}'".format(id))
+        self.cur.execute("SELECT users.id, places.id FROM users, places\
+        WHERE users.id = places.user_id AND users.id = '{}'".format(id))
         rows = self.cur.fetchall()
-        self.assertEqual((), rows)
+        self.assertEqual(p.id, rows[0][1])
+
+        self.cur.execute("SELECT users.id, reviews.id FROM users, reviews\
+        WHERE users.id = reviews.user_id AND users.id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertEqual(r.id, rows[0][1])
+
+        storage.delete(u)
+        storage.save()
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute("SELECT COUNT(id) FROM users WHERE id = '{}'"
+                         .format(id))
+        count = self.cur.fetchall()[0][0]
+        self.assertEqual(0, count)
+
+        self.cur.execute("SELECT COUNT(id) FROM places WHERE id = '{}'"
+                         .format(p.id))
+        count = self.cur.fetchall()[0][0]
+        self.assertEqual(0, count)
+
+        self.cur.execute("SELECT COUNT(id) FROM reviews WHERE id = '{}'"
+                         .format(r.id))
+        count = self.cur.fetchall()[0][0]
+        self.assertEqual(0, count)
 
 
 if __name__ == "__main__":

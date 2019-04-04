@@ -3,8 +3,15 @@
 import unittest
 import os
 from models.review import Review
+from models.user import User
+from models.state import State
+from models.city import City
+from models.place import Place
 from models.base_model import BaseModel
 import pep8
+from models import storage
+import sqlalchemy
+import MySQLdb
 
 
 class TestReview(unittest.TestCase):
@@ -74,6 +81,133 @@ class TestReview(unittest.TestCase):
     def test_to_dict_Review(self):
         """test if dictionary works"""
         self.assertEqual('to_dict' in dir(self.rev), True)
+
+
+class TestReviewDb(unittest.TestCase):
+    """This will test the Review class on DB storage"""
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup for the test"""
+        if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+            return
+
+        s = State(name='California')
+        s.save()
+        cls.sid = s.id
+        c = City(name='SF', state_id=cls.sid)
+        c.save()
+        cls.cid = c.id
+        u = User(email='omg@gmail.com', password='testing')
+        u.save()
+        cls.uid = u.id
+
+        cls.para = {'city_id': cls.cid, 'user_id': cls.uid,
+                    'name': 'Home', 'description': 'Something',
+                    'number_rooms': 10, 'number_bathrooms': 11,
+                    'max_guest': 12, 'price_by_night': 9000,
+                    'latitude': 0.0, 'longitude': 1.1}
+        p = Place(**cls.para)
+        p.save()
+        cls.pid = p.id
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+            self.skipTest("Using file storage")
+        self.create_conn()
+
+    def tearDown(self):
+        """Teardown method to reload session"""
+        storage.reload()
+        self.cur.close()
+        self.conn.close()
+
+    def create_conn(self):
+        """Setup mysqldb connection and cursor"""
+        self.conn = MySQLdb.connect(host=os.getenv('HBNB_MYSQL_HOST'),
+                                    port=3306,
+                                    user=os.getenv('HBNB_MYSQL_USER'),
+                                    passwd=os.getenv('HBNB_MYSQL_PWD'),
+                                    db=os.getenv('HBNB_MYSQL_DB'),
+                                    charset="utf8")
+
+        self.cur = self.conn.cursor()
+
+    def test_review_normal(self):
+        """Test operation of saving a Review object with valid attributes"""
+        r = Review(place_id=self.pid, user_id=self.uid, text="Great")
+        r.save()
+        id = r.id
+        self.cur.execute("SELECT id FROM reviews WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_review_text_edge(self):
+        """Test operation of saving a Review object with `text` at edge of
+        column constraint"""
+        r = Review(place_id=self.pid, user_id=self.uid, text="G" * 1024)
+        r.save()
+        id = r.id
+        self.cur.execute("SELECT id FROM reviews WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+    def test_review_text_invalid(self):
+        """Test operation of saving a Review object with `text` over column
+        constraint"""
+        with self.assertRaises(sqlalchemy.exc.DataError):
+            r = Review(place_id=self.pid, user_id=self.uid, text="G" * 1025)
+            r.save()
+
+    def test_review_text_none(self):
+        """Test operation of saving a Review object with no `text`"""
+        with self.assertRaises(sqlalchemy.exc.OperationalError):
+            r = Review(place_id=self.pid, user_id=self.uid)
+            r.save()
+
+    def test_review_deletion(self):
+        """Test deletion of a Review object"""
+        r = Review(place_id=self.pid, user_id=self.uid, text="Great")
+        r.save()
+        id = r.id
+        self.cur.execute("SELECT id FROM reviews WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertIn(id, rows[0])
+
+        storage.delete(r)
+        storage.save()
+        self.tearDown()
+        self.create_conn()
+
+        self.cur.execute("SELECT COUNT(id) FROM reviews WHERE id = '{}'"
+                         .format(id))
+        count = self.cur.fetchall()[0][0]
+        self.assertEqual(0, count)
+
+    def test_Review_place_id_invalid(self):
+        """Test operation of saving a Review object with invalid `place_id`"""
+        with self.assertRaises(sqlalchemy.exc.IntegrityError):
+            r = Review(place_id='fdfsfsdf', user_id=self.uid, text="nope")
+            r.save()
+
+    def test_Review_place_id_none(self):
+        """Test operation of saving a Review object with no `place_id`"""
+        with self.assertRaises(sqlalchemy.exc.OperationalError):
+            r = Review(user_id=self.uid, text="Nope")
+            r.save()
+
+    def test_Review_user_id_invalid(self):
+        """Test operation of saving a Review object with invalid `user_id`"""
+        with self.assertRaises(sqlalchemy.exc.IntegrityError):
+            r = Review(user_id='fdfsfsdf', place_id=self.pid, text="nope")
+            r.save()
+
+    def test_Review_user_id_none(self):
+        """Test operation of saving a Review object with no `user_id`"""
+        with self.assertRaises(sqlalchemy.exc.OperationalError):
+            r = Review(place_id=self.pid, text="Nope")
+            r.save()
 
 
 if __name__ == "__main__":
