@@ -5,6 +5,9 @@ import os
 from models.amenity import Amenity
 from models.base_model import BaseModel
 import pep8
+import MySQLdb
+import sqlalchemy
+from models import storage
 
 
 class TestAmenity(unittest.TestCase):
@@ -69,6 +72,90 @@ class TestAmenity(unittest.TestCase):
         """test if dictionary works"""
         self.assertEqual('to_dict' in dir(self.amenity), True)
 
+
+class TestAmenityDb(unittest.TestCase):
+    """This will test the Amenity class on DB storage"""
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup for the test"""
+        if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+            return
+
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+            self.skipTest("Using file storage")
+        self.create_conn()
+
+    def tearDown(self):
+        """Teardown method to reload session"""
+        storage.reload()
+        self.cur.close()
+        self.conn.close()
+
+    def create_conn(self):
+        """Setup mysqldb connection and cursor"""
+        self.conn = MySQLdb.connect(host=os.getenv('HBNB_MYSQL_HOST'),
+                                    port=3306,
+                                    user=os.getenv('HBNB_MYSQL_USER'),
+                                    passwd=os.getenv('HBNB_MYSQL_PWD'),
+                                    db=os.getenv('HBNB_MYSQL_DB'),
+                                    charset="utf8")
+
+        self.cur = self.conn.cursor()
+
+    def test_amenity_normal(self):
+        """Test normal save operation of Amenity object"""
+        a = Amenity(name="TV")
+        a.save()
+        id = a.id
+        self.cur.execute("SELECT id FROM amenities WHERE id = '{}'".format(id))
+        rows = self.cur.fetchall()
+        self.assertEqual(id, rows[0][0])
+
+    def test_amenity_name_edge(self):
+        """Test operation of saving a Amenity object with `name` at edge of
+        column constraint"""
+        a = Amenity(name="T" * 128)
+        a.save()
+        id = a.id
+        self.cur.execute("SELECT id FROM amenities WHERE id = '{}'"
+                         .format(a.id))
+        rows = self.cur.fetchall()
+        self.assertEqual(id, rows[0][0])
+
+    def test_amenity_name_invalid(self):
+        """Test operation of saving a Amenity object with `name` over column
+        constraint"""
+        with self.assertRaises(sqlalchemy.exc.DataError):
+            a = Amenity(name="T" * 129)
+            a.save()
+
+    def test_amenity_name_none(self):
+        """Test operation of saving a Amenity object with no `name`"""
+        with self.assertRaises(sqlalchemy.exc.OperationalError):
+            a = Amenity()
+            a.save()
+
+    def test_amenity_deletion(self):
+        """Test deletion operation of an Amenity object"""
+        a = Amenity(name="TV")
+        a.save()
+        id = a.id
+        self.cur.execute("SELECT id FROM amenities WHERE id = '{}'"
+                         .format(id))
+        rows = self.cur.fetchall()
+        self.assertEqual(id, rows[0][0])
+
+        storage.delete(a)
+        storage.save()
+        self.tearDown()
+        self.create_conn()
+        self.cur.execute("SELECT id FROM amenities WHERE id = '{}'"
+                         .format(id))
+        rows = self.cur.fetchall()
+        self.assertEqual((), rows)
 
 if __name__ == "__main__":
     unittest.main()
