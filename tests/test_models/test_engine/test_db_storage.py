@@ -23,10 +23,6 @@ class TestDBStorage(unittest.TestCase):
         if os.getenv('HBNB_TYPE_STORAGE') != 'db':
             self.skipTest("Using file storage")
 
-    def tearDown(self):
-        """teardown"""
-        storage.reload()
-
     def test_pep8_DB_Storage(self):
         """Tests pep8 style"""
         style = pep8.StyleGuide(quiet=True)
