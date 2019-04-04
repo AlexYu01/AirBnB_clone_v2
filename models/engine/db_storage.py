@@ -16,8 +16,8 @@ database = os.getenv("HBNB_MYSQL_DB")
 user = os.getenv("HBNB_MYSQL_USER")
 host = os.getenv("HBNB_MYSQL_HOST")
 passwd = os.getenv("HBNB_MYSQL_PWD")
-class_dict = {User: "users", State: "states", City: "cities", Place: "places",
-              Amenity: "amenities", Review: "reviews"}
+class_dict = {"User": User, "State": State, "City": City, "Place": Place,
+              "Amenity": Amenity, "Review": Review}
 
 
 class DBStorage():
@@ -41,12 +41,12 @@ class DBStorage():
             '''only queries for one class name'''
             if cls not in class_dict:
                 return new_dict
-            for objs in self.__session.query(cls).all():
+            for objs in self.__session.query(class_dict[cls]).all():
                 key = str(objs.__class__.__name__) + '.' + str(objs.id)
                 new_dict[key] = objs
         else:
             '''loops through all current classes and queries for each'''
-            for classes in class_dict.keys():
+            for classes in class_dict.values():
                 for objs in self.__session.query(classes).all():
                     key = str(classes.__name__) + '.' + str(objs.id)
                     new_dict[key] = objs

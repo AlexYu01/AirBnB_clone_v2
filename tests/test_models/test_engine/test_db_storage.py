@@ -42,7 +42,7 @@ class TestDBStorage(unittest.TestCase):
         """tests if all with class works in database Storage"""
         storage.new(State(name='Hawaii'))
         objs = storage.all()
-        u_objs = storage.all(User)
+        u_objs = storage.all('User')
         self.assertIsNotNone(objs)
         self.assertEqual(type(objs), dict)
         self.assertEqual(type(u_objs), dict)
