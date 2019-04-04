@@ -1,9 +1,18 @@
 #!/usr/bin/python3
 """This is the place class"""
 from models.base_model import BaseModel, Base
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Table
 from sqlalchemy.orm import relationship
 import os
+
+
+association_table = Table("place_amenity", Base.metadata,
+                          Column("place_id", String(60),
+                                 ForeignKey("places.id"), primary_key=True,
+                                 nullable=False),
+                          Column("amenity_id", String(60),
+                                 ForeignKey("amenities.id"), primary_key=True,
+                                 nullable=False))
 
 
 class Place(BaseModel, Base):
@@ -16,7 +25,7 @@ class Place(BaseModel, Base):
         number_rooms: number of room in int
         number_bathrooms: number of bathrooms in int
         max_guest: maximum guest in int
-        price_by_night:: pice for a staying in int
+        price_by_night: price for a staying in int
         latitude: latitude in flaot
         longitude: longitude in float
         amenity_ids: list of Amenity ids
@@ -37,12 +46,30 @@ class Place(BaseModel, Base):
     if os.getenv('HBNB_TYPE_STORAGE') == 'db':
         reviews = relationship('Review', backref='place',
                                cascade='all, delete')
+    amenities = relationship("Amenity", secondary="place_amenity",
+                             viewonly=False)
 
-    @property
-    def reviews(self):
-        '''Gets all Reviews instances where place_id == current Place.id'''
-        new_list = []
-        for each in storage.all('Review').items():
-            if self.id == each.place_id:
-                new_list.append(each)
-        return new_list
+    if os.getenv("HBNB_TYPE_STORAGE") != "db":
+        @property
+        def reviews(self):
+            '''Gets all Reviews instances where place_id == current Place.id'''
+            new_list = []
+            for each in storage.all('Review').items():
+                if self.id == each.place_id:
+                    new_list.append(each)
+            return new_list
+
+        @property
+        def amenities(self):
+            '''Gets all Amenity instances where amenity_ids==self.id'''
+            new_list = []
+            for each in models.storage.all(Amenity).values():
+                if each.id in self.amenity_ids:
+                    new_list.append(each)
+            return new_list
+
+        @amenities.setter
+        def amenities(self, obj):
+            '''Setter for amenities'''
+            if isinstance(obj, Amenity):
+                self.amenity_ids.append(obj.id)
