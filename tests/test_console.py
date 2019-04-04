@@ -32,6 +32,11 @@ class TestConsole(unittest.TestCase):
         """at the end of the test this will tear it down"""
         del cls.consol
 
+    def setUp(self):
+        """Setup method"""
+        if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+            self.skipTest("Using db storage")
+
     def tearDown(self):
         """Remove temporary file (file.json) created as a result"""
         try:
