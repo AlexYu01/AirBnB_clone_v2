@@ -3,6 +3,7 @@
 from models.base_model import BaseModel, Base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
+import os
 
 
 class Place(BaseModel, Base):
@@ -33,10 +34,11 @@ class Place(BaseModel, Base):
     longitude = Column(Float)
     amenity_ids = []
 
-    reviews = relationship('Review', backref='place', cascade='all, delete')
+    if os.getenv('HBNB_TYPE_STORAGE') == 'db':
+        reviews = relationship('Review', backref='place', cascade='all, delete')
 
     @property
-    def get_reviews(self):
+    def reviews(self):
         '''Gets all Reviews instances where place_id == current Place.id'''
         new_list = []
         for each in storage.all('Review').items():
