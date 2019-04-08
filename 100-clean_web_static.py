@@ -81,13 +81,9 @@ def do_clean(number=0):
         return
     if number == 0:
         number = 1
-    r = local("ls -t versions", capture=True)
-    if r.succeeded:
-        archives = r.split('\n')
-        if len(archives) > number:
-            for arc in archives[number:]:
-                local("rm -rf versions/{}".format(arc))
-    r = run("ls -t /data/web_static/releases | grep 'web_static'")
+    clean_local(number)
+
+    r = run("ls -t /data/web_static/releases | grep ''")
     if r.succeeded:
         archives = r.split('\n')
         if len(archives) > number:
@@ -95,3 +91,16 @@ def do_clean(number=0):
                 if arc[-1] == '\r':
                     arc = arc[:-1]
                 run("rm -rf /data/web_static/releases/{}".format(arc))
+
+
+@runs_once
+def clean_local(number):
+    """Clean /verions in local"""
+    if not os.path.exists("versions"):
+        return
+    r = local("ls -t versions", capture=True)
+    if r.succeeded:
+        archives = r.split('\n')
+        if len(archives) > number:
+            for arc in archives[number:]:
+                local("rm -rf versions/{}".format(arc))
