@@ -114,22 +114,27 @@ exec { 'install nginx':
   command => 'sudo apt-get install -y nginx',
   path    => ['/usr/bin', '/usr/sbin'],
 }->
-file { $dirs:
-  ensure => directory,
-  owner  => 'ubuntu',
-  group  => 'ubuntu',
-  mode   => '0755'
+exec { 'create test folder':
+  command => 'sudo mkdir -p /data/web_static/releases/test/',
+  path    => ['/usr/bin', '/usr/sbin'],
 }->
-file { '/data/web_static/releases/test/index.html':
-  ensure  => present,
-  content => 'Hello world',
+exec { 'create shared folder':
+  command => 'sudo mkdir -p /data/web_static/shared/',
+  path    => ['/usr/bin', '/usr/sbin'],
 }->
-file { 'delete current':
-  ensure => absent,
-  path   => '/data/web_static/current',
+exec { 'create index':
+  command => 'echo "Hello world" | sudo tee \
+/data/web_static/releases/test/index.html',
+  path    => ['/bin/', '/usr/bin', '/usr/sbin'],
+}->
+exec { 'delete current if exist':
+  command => 'sudo rm /data/web_static/current',
+  onlyif  => 'test -e /data/web_static/current',
+  path    => ['/bin/', '/usr/bin', '/usr/sbin'],
 }->
 exec { 'make link':
-  command => 'ln -s /data/web_static/releases/test/ /data/web_static/current',
+  command => 'sudo ln -s /data/web_static/releases/test/ \
+/data/web_static/current',
   path    => ['/bin/', '/usr/bin', '/usr/sbin'],
 }->
 exec { 'delete conf':
