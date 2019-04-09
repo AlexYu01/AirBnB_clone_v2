@@ -116,6 +116,8 @@ exec { 'install nginx':
 }->
 file { $dirs:
   ensure => directory,
+  owner  => 'ubuntu',
+  group  => 'ubuntu',
   mode   => '0755'
 }->
 file { '/data/web_static/releases/test/index.html':
