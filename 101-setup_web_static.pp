@@ -124,12 +124,17 @@ file { '/data/web_static/releases/test/index.html':
   ensure  => present,
   content => 'Hello world',
 }->
-file { '/data/web_static/current':
-  ensure => link,
-  target => '/data/web_static/releases/test/',
-}->
-file { '/etc/nginx/nginx.conf':
+file { 'delete current':
   ensure => absent,
+  path   => '/data/web_static/current',
+}->
+exec { 'make link':
+  command => 'ln -s /data/web_static/releases/test/ /data/web_static/current',
+  path    => ['/bin/', '/usr/bin', '/usr/sbin'],
+}->
+exec { 'delete conf':
+  command => 'sudo rm /etc/nginx/nginx.conf',
+  path    => ['/bin/', '/usr/bin', '/usr/sbin'],
 }->
 exec { 'make conf':
   command => "echo \"${hello}\" | sudo tee /etc/nginx/nginx.conf",
