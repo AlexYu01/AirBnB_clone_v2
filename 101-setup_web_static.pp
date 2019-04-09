@@ -137,6 +137,10 @@ exec { 'make link':
 /data/web_static/current',
   path    => ['/bin/', '/usr/bin', '/usr/sbin'],
 }->
+exec { 'change owners':
+  command => 'sudo chown -R ubuntu:ubuntu /data/',
+  path    => ['/bin/', '/usr/bin', '/usr/sbin'],
+}->
 exec { 'delete conf':
   command => 'sudo rm /etc/nginx/nginx.conf',
   path    => ['/bin/', '/usr/bin', '/usr/sbin'],
