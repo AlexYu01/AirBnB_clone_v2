@@ -8,7 +8,7 @@ from flask import Flask
 if __name__ == '__main__':
     app = Flask(__name__)
 
-    @app.route('/', strict_slashes=False)
+    @app.route('/airbnb-onepage/', strict_slashes=False)
     def hello():
         """
             Prints `Hello HBNB!` when accessing root of website
